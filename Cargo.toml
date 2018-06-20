@@ -1,0 +1,8 @@
+[package]
+name = "imgcmp"
+version = "0.1.0"
+authors = ["Dan Kaplun <dbkaplun@gmail.com>"]
+
+[dependencies]
+image = { git = "https://github.com/PistonDevelopers/image", rev = "c41f602" }
+num-traits = "*"
