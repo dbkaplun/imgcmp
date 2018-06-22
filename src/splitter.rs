@@ -22,7 +22,7 @@ impl Splitter for SplitInHalf {
             }
         } else {
             Split {
-                dir: SplitDirection::Horiz,
+                dir: SplitDirection::Vert,
                 at: h / 2,
                 size: h,
             }
@@ -53,9 +53,7 @@ impl Splitter for MaximalColorDifferenceSplitter {
                         (img.view(0, 0, w, split), img.view(0, split, w, h - split))
                     }
                 };
-                color_dist2(avg_color(&a).unwrap(), avg_color(&b).unwrap())
-                    .to_f64()
-                    .unwrap()
+                color_dist2(avg_color(&a), avg_color(&b)).to_f64().unwrap()
             },
             0.5,
         ).unwrap();

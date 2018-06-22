@@ -1,5 +1,5 @@
 use image::{GenericImageView, Pixel};
-use num_traits::{Float, One, Zero};
+use num_traits::{Float, NumCast, ToPrimitive};
 use std::error::Error;
 
 pub fn newtons_method<N: Float, F: Fn(N) -> N>(f: &F, guess: N) -> Result<N, Box<Error>> {
@@ -26,37 +26,34 @@ pub fn d<N: Float, F: Fn(N) -> N>(f: F, x: N) -> N {
     (f(x + N::epsilon()) - f(x - N::epsilon())) / ((one + one) * N::epsilon())
 }
 
-pub fn avg_color<P: Pixel, I: GenericImageView<Pixel = P>>(img: &I) -> Option<P> {
+pub fn avg_color<P: Pixel, I: GenericImageView<Pixel = P>>(img: &I) -> P {
     color_avg(img.pixels().map(|(_, _, px)| px).by_ref())
 }
 
-pub fn color_avg<P: Pixel>(colors: &mut Iterator<Item = P>) -> Option<P> {
-    let one = P::Subpixel::one();
-    colors.next().map(|color| {
-        let mut res = color; // color: Copy
-        {
-            let channels = res.channels_mut();
-            let mut count = one;
-            for c in colors {
-                count = count + one;
-                for (i, &channel) in c.channels().iter().enumerate() {
-                    channels[i] = channels[i] + channel;
-                }
-            }
-
-            for channel in channels.iter_mut() {
-                *channel = *channel / count;
-            }
+pub fn color_avg<P: Pixel>(colors: &mut Iterator<Item = P>) -> P {
+    let (count, acc) = colors.fold((0, [0., 0., 0., 0.]), |(count, mut acc), color| {
+        for (i, channel) in color.channels().iter().enumerate() {
+            acc[i] += channel.to_f64().unwrap();
         }
-        res
-    })
+        (count + 1, acc)
+    });
+
+    let denominator = if count == 0 { 1. } else { From::from(count) };
+
+    P::from_channels(
+        NumCast::from(acc[0] / denominator).unwrap(),
+        NumCast::from(acc[1] / denominator).unwrap(),
+        NumCast::from(acc[2] / denominator).unwrap(),
+        NumCast::from(acc[3] / denominator).unwrap(),
+    )
 }
 
-pub fn color_dist2<P: Pixel>(a: P, b: P) -> P::Subpixel {
+pub fn color_dist2<P: Pixel>(a: P, b: P) -> f64 {
     a.map2(&b, |a, b| {
         let diff = a - b;
         diff * diff
     }).channels()
         .iter()
-        .fold(P::Subpixel::zero(), |acc, &channel| acc + channel)
+        .map(|channel| channel.to_f64().unwrap())
+        .sum()
 }

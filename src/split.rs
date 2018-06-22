@@ -1,12 +1,12 @@
 use image::{GenericImageView, SubImage};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum SplitDirection {
     Horiz,
     Vert,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Split {
     pub dir: SplitDirection,
     pub at: u32,
@@ -21,15 +21,15 @@ impl Split {
         SubImage<&'i I::InnerImageView>,
         SubImage<&'i I::InnerImageView>,
     ) {
-        let (x, y, w, h) = img.bounds();
+        let (w, h) = img.dimensions();
         match self.dir {
             SplitDirection::Horiz => (
-                img.view(x, y, self.at, h),
-                img.view(x + self.at, y, w - self.at, h),
+                img.view(0, 0, self.at, h),
+                img.view(self.at, 0, w - self.at, h),
             ),
             SplitDirection::Vert => (
-                img.view(x, y, w, self.at),
-                img.view(x, y + self.at, w, h - self.at),
+                img.view(0, 0, w, self.at),
+                img.view(0, self.at, w, h - self.at),
             ),
         }
     }
