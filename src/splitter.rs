@@ -19,12 +19,14 @@ impl Splitter for SplitInHalf {
                 dir: SplitDirection::Horiz,
                 at: w / 2,
                 size: w,
+                size_orthogonal: h,
             }
         } else {
             Split {
                 dir: SplitDirection::Vert,
                 at: h / 2,
                 size: h,
+                size_orthogonal: w,
             }
         }
     }
@@ -36,31 +38,38 @@ pub struct MaximalColorDifferenceSplitter;
 impl Splitter for MaximalColorDifferenceSplitter {
     fn split<I: GenericImageView>(img: &I) -> Split {
         let (w, h) = img.dimensions();
-        let (size, dir) = if w > h {
-            (w, SplitDirection::Horiz)
+        let mut split = if w > h {
+            Split {
+                dir: SplitDirection::Horiz,
+                at: 0,
+                size: w,
+                size_orthogonal: h,
+            }
         } else {
-            (h, SplitDirection::Vert)
+            Split {
+                dir: SplitDirection::Vert,
+                at: 0,
+                size: h,
+                size_orthogonal: w,
+            }
         };
-        let split_frac = newtons_method(
-            &|n| {
-                let (a, b) = match dir {
-                    SplitDirection::Horiz => {
-                        let split = (n * f64::from(w)) as u32;
-                        (img.view(0, 0, split, h), img.view(split, 0, w - split, h))
-                    }
-                    SplitDirection::Vert => {
-                        let split = (n * f64::from(h)) as u32;
-                        (img.view(0, 0, w, split), img.view(0, split, w, h - split))
-                    }
-                };
-                color_dist2(avg_color(&a), avg_color(&b)).to_f64().unwrap()
-            },
-            0.5,
-        ).unwrap();
-        Split {
-            dir,
-            size,
-            at: (split_frac * f64::from(size)) as u32,
-        }
+        split.at = (f64::from(split.size)
+            * newtons_method(
+                &|n| {
+                    let (a, b) = match split.dir {
+                        SplitDirection::Horiz => {
+                            let at = (n * f64::from(w)) as u32;
+                            (img.view(0, 0, at, h), img.view(at, 0, w - at, h))
+                        }
+                        SplitDirection::Vert => {
+                            let at = (n * f64::from(h)) as u32;
+                            (img.view(0, 0, w, at), img.view(0, at, w, h - at))
+                        }
+                    };
+                    color_dist2(avg_color(&a), avg_color(&b)).to_f64().unwrap()
+                },
+                0.5,
+            ).unwrap()) as u32;
+        split
     }
 }

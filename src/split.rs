@@ -11,6 +11,7 @@ pub struct Split {
     pub dir: SplitDirection,
     pub at: u32,
     pub size: u32,
+    pub size_orthogonal: u32,
 }
 
 impl Split {
@@ -31,6 +32,13 @@ impl Split {
                 img.view(0, 0, w, self.at),
                 img.view(0, self.at, w, h - self.at),
             ),
+        }
+    }
+
+    pub fn dimensions(&self) -> (u32, u32) {
+        match self.dir {
+            SplitDirection::Horiz => (self.size, self.size_orthogonal),
+            SplitDirection::Vert => (self.size_orthogonal, self.size),
         }
     }
 }
